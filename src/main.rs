@@ -142,6 +142,7 @@ fn main() {
 
 
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
     use rocksdb::{BlockBasedOptions, DB, Options};
     use rocksdb::DBCompactionStyle::DBUniversalCompaction;

@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 extern crate libc;
-use self::libc::{c_int, size_t};
+
+use libc::*;
 use std::ffi::CString;
 use std::mem;
 
@@ -37,7 +39,7 @@ pub struct WriteOptions {
 impl Drop for Options {
     fn drop(&mut self) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_destroy(self.inner);
+            rocksdb_ffi::rocksdb_options_destroy(self.inner as *mut _);
         }
     }
 }
@@ -45,7 +47,7 @@ impl Drop for Options {
 impl Drop for BlockBasedOptions {
     fn drop(&mut self) {
         unsafe {
-            rocksdb_ffi::rocksdb_block_based_options_destroy(self.inner);
+            rocksdb_ffi::rocksdb_block_based_options_destroy(self.inner as *mut _);
         }
     }
 }
@@ -53,7 +55,7 @@ impl Drop for BlockBasedOptions {
 impl Drop for WriteOptions {
     fn drop(&mut self) {
         unsafe {
-            rocksdb_ffi::rocksdb_writeoptions_destroy(self.inner);
+            rocksdb_ffi::rocksdb_writeoptions_destroy(self.inner as *mut _);
         }
     }
 }
@@ -71,8 +73,8 @@ impl BlockBasedOptions {
 
     pub fn set_block_size(&mut self, size: usize) {
         unsafe {
-            rocksdb_ffi::rocksdb_block_based_options_set_block_size(self.inner,
-                                                                    size);
+            rocksdb_ffi::rocksdb_block_based_options_set_block_size(self.inner as *mut _,
+                                                                    size as size_t);
         }
     }
 }
@@ -114,23 +116,23 @@ impl Options {
 
     pub fn increase_parallelism(&mut self, parallelism: i32) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_increase_parallelism(self.inner,
-                                                              parallelism);
+            rocksdb_ffi::rocksdb_options_increase_parallelism(self.inner as *mut _,
+                                                              parallelism as c_int);
         }
     }
 
     pub fn optimize_level_style_compaction(&mut self,
-                                           memtable_memory_budget: i32) {
+                                           memtable_memory_budget: u64) {
         unsafe {
             rocksdb_ffi::rocksdb_options_optimize_level_style_compaction(
-                self.inner, memtable_memory_budget);
+                self.inner as *mut _, memtable_memory_budget as uint64_t);
         }
     }
 
     pub fn create_if_missing(&mut self, create_if_missing: bool) {
         unsafe {
             rocksdb_ffi::rocksdb_options_set_create_if_missing(
-                self.inner, create_if_missing);
+                self.inner as *mut _, create_if_missing as c_uchar);
         }
     }
 
@@ -147,13 +149,13 @@ impl Options {
 
         unsafe {
             let mo = rocksdb_ffi::rocksdb_mergeoperator_create(
-                mem::transmute(cb),
-                merge_operator::destructor_callback,
-                full_merge_callback,
-                partial_merge_callback,
+                mem::transmute(Box::into_raw(cb)),
+                Some(merge_operator::destructor_callback),
+                Some(full_merge_callback),
+                Some(partial_merge_callback),
                 None,
-                merge_operator::name_callback);
-            rocksdb_ffi::rocksdb_options_set_merge_operator(self.inner, mo);
+                Some(merge_operator::name_callback));
+            rocksdb_ffi::rocksdb_options_set_merge_operator(self.inner as *mut _, mo);
         }
     }
 
@@ -167,161 +169,148 @@ impl Options {
 
         unsafe {
             let cmp = rocksdb_ffi::rocksdb_comparator_create(
-                mem::transmute(cb),
-                comparator::destructor_callback,
-                compare_callback,
-                comparator::name_callback);
-            rocksdb_ffi::rocksdb_options_set_comparator(self.inner, cmp);
+                mem::transmute(Box::into_raw(cb)),
+                Some(comparator::destructor_callback),
+                Some(compare_callback),
+                Some(comparator::name_callback));
+            rocksdb_ffi::rocksdb_options_set_comparator(self.inner as *mut _,
+                                                        cmp);
         }
     }
 
 
     pub fn set_block_cache_size_mb(&mut self, cache_size: u64) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_optimize_for_point_lookup(self.inner,
-                                                                   cache_size);
+            rocksdb_ffi::rocksdb_options_optimize_for_point_lookup(self.inner as *mut _,
+                                                                   cache_size as uint64_t);
         }
     }
 
-    pub fn set_max_open_files(&mut self, nfiles: c_int) {
+    pub fn set_max_open_files(&mut self, nfiles: i32) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_max_open_files(self.inner, nfiles);
+            rocksdb_ffi::rocksdb_options_set_max_open_files(self.inner as *mut _,
+                                                            nfiles as c_int);
         }
     }
 
     pub fn set_use_fsync(&mut self, useit: bool) {
         unsafe {
-            match useit {
-                true => {
-                    rocksdb_ffi::rocksdb_options_set_use_fsync(self.inner, 1)
-                }
-                false => {
-                    rocksdb_ffi::rocksdb_options_set_use_fsync(self.inner, 0)
-                }
-            }
+            rocksdb_ffi::rocksdb_options_set_use_fsync(self.inner as *mut _,
+                                                       useit as c_int);
         }
     }
 
     pub fn set_bytes_per_sync(&mut self, nbytes: u64) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_bytes_per_sync(self.inner, nbytes);
+            rocksdb_ffi::rocksdb_options_set_bytes_per_sync(self.inner as *mut _,
+                                                            nbytes as uint64_t);
         }
     }
 
     pub fn set_disable_data_sync(&mut self, disable: bool) {
         unsafe {
-            match disable {
-                true =>
-                    rocksdb_ffi::rocksdb_options_set_disable_data_sync(
-                        self.inner, 1),
-                false =>
-                    rocksdb_ffi::rocksdb_options_set_disable_data_sync(
-                        self.inner, 0),
-            }
+            rocksdb_ffi::rocksdb_options_set_disable_data_sync(
+                        self.inner as *mut _, disable as c_int);
         }
     }
 
-    pub fn set_table_cache_num_shard_bits(&mut self, nbits: c_int) {
+    pub fn set_table_cache_num_shard_bits(&mut self, nbits: i32) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_table_cache_numshardbits(self.inner,
-                                                                      nbits);
+            rocksdb_ffi::rocksdb_options_set_table_cache_numshardbits(self.inner as *mut _,
+                                                                      nbits as c_int);
         }
     }
 
-    pub fn set_min_write_buffer_number(&mut self, nbuf: c_int) {
+    pub fn set_min_write_buffer_number(&mut self, nbuf: i32) {
         unsafe {
             rocksdb_ffi::rocksdb_options_set_min_write_buffer_number_to_merge(
-                self.inner, nbuf);
+                self.inner as *mut _, nbuf as c_int);
         }
     }
 
-    pub fn set_max_write_buffer_number(&mut self, nbuf: c_int) {
+    pub fn set_max_write_buffer_number(&mut self, nbuf: i32) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_max_write_buffer_number(self.inner,
-                                                                     nbuf);
+            rocksdb_ffi::rocksdb_options_set_max_write_buffer_number(self.inner as *mut _,
+                                                                     nbuf as c_int);
         }
     }
 
-    pub fn set_write_buffer_size(&mut self, size: size_t) {
+    pub fn set_write_buffer_size(&mut self, size: usize) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_write_buffer_size(self.inner,
-                                                               size);
+            rocksdb_ffi::rocksdb_options_set_write_buffer_size(self.inner as *mut _,
+                                                               size as size_t);
         }
     }
 
     pub fn set_target_file_size_base(&mut self, size: u64) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_target_file_size_base(self.inner,
-                                                                   size);
+            rocksdb_ffi::rocksdb_options_set_target_file_size_base(self.inner as *mut _,
+                                                                   size as uint64_t);
         }
     }
 
-    pub fn set_min_write_buffer_number_to_merge(&mut self, to_merge: c_int) {
+    pub fn set_min_write_buffer_number_to_merge(&mut self, to_merge: i32) {
         unsafe {
             rocksdb_ffi::rocksdb_options_set_min_write_buffer_number_to_merge(
-                self.inner, to_merge);
+                self.inner as *mut _, to_merge as c_int);
         }
     }
 
-    pub fn set_level_zero_slowdown_writes_trigger(&mut self, n: c_int) {
+    pub fn set_level_zero_slowdown_writes_trigger(&mut self, n: i32) {
         unsafe {
             rocksdb_ffi::rocksdb_options_set_level0_slowdown_writes_trigger(
-                self.inner, n);
+                self.inner as *mut _, n as c_int);
         }
     }
 
-    pub fn set_level_zero_stop_writes_trigger(&mut self, n: c_int) {
+    pub fn set_level_zero_stop_writes_trigger(&mut self, n: i32) {
         unsafe {
             rocksdb_ffi::rocksdb_options_set_level0_stop_writes_trigger(
-                self.inner, n);
+                self.inner as *mut _, n as c_int);
         }
     }
 
     pub fn set_compaction_style(&mut self,
                                 style: rocksdb_ffi::DBCompactionStyle) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_compaction_style(self.inner,
-                                                              style);
+            rocksdb_ffi::rocksdb_options_set_compaction_style(self.inner as *mut _,
+                                                              style as c_int);
         }
     }
 
-    pub fn set_max_background_compactions(&mut self, n: c_int) {
+    pub fn set_max_background_compactions(&mut self, n: i32) {
         unsafe {
             rocksdb_ffi::rocksdb_options_set_max_background_compactions(
-                self.inner, n);
+                self.inner as *mut _, n as c_int);
         }
     }
 
-    pub fn set_max_background_flushes(&mut self, n: c_int) {
+    pub fn set_max_background_flushes(&mut self, n: i32) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_max_background_flushes(self.inner,
-                                                                    n);
+            rocksdb_ffi::rocksdb_options_set_max_background_flushes(self.inner as *mut _,
+                                                                    n as c_int);
         }
     }
 
     pub fn set_filter_deletes(&mut self, filter: bool) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_filter_deletes(self.inner, filter);
+            rocksdb_ffi::rocksdb_options_set_filter_deletes(self.inner as *mut _,
+                                                            filter as c_uchar);
         }
     }
 
     pub fn set_disable_auto_compactions(&mut self, disable: bool) {
         unsafe {
-            match disable {
-                true =>
-                    rocksdb_ffi::rocksdb_options_set_disable_auto_compactions(
-                        self.inner, 1),
-                false =>
-                    rocksdb_ffi::rocksdb_options_set_disable_auto_compactions(
-                        self.inner, 0),
-            }
+            rocksdb_ffi::rocksdb_options_set_disable_auto_compactions(
+                        self.inner as *mut _, disable as c_int);
         }
     }
 
     pub fn set_block_based_table_factory(&mut self,
                                          factory: &BlockBasedOptions) {
         unsafe {
-            rocksdb_ffi::rocksdb_options_set_block_based_table_factory(self.inner, factory.inner);
+            rocksdb_ffi::rocksdb_options_set_block_based_table_factory(
+                self.inner as *mut _, factory.inner as *mut _);
         }
     }
 }
@@ -336,7 +325,8 @@ impl WriteOptions {
     }
     pub fn set_sync(&mut self, sync: bool) {
         unsafe {
-            rocksdb_ffi::rocksdb_writeoptions_set_sync(self.inner, sync);
+            rocksdb_ffi::rocksdb_writeoptions_set_sync(self.inner as *mut _,
+                                                       sync as c_uchar);
         }
     }
 }

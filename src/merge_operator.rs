@@ -50,7 +50,7 @@ pub extern "C" fn full_merge_callback(raw_cb: *mut c_void,
                                       num_operands: c_int,
                                       success: *mut u8,
                                       new_value_length: *mut size_t)
-                                      -> *const c_char {
+                                      -> *mut c_char {
     unsafe {
         let cb: &mut MergeOperatorCallback =
             &mut *(raw_cb as *mut MergeOperatorCallback);
@@ -69,7 +69,7 @@ pub extern "C" fn full_merge_callback(raw_cb: *mut c_void,
         *new_value_length = result.len() as size_t;
         *success = 1 as u8;
         ptr::copy(result.as_ptr() as *mut c_void, &mut *buf, result.len());
-        buf as *const c_char
+        buf as *mut c_char
     }
 }
 
@@ -81,7 +81,7 @@ pub extern "C" fn partial_merge_callback(raw_cb: *mut c_void,
                                          num_operands: c_int,
                                          success: *mut u8,
                                          new_value_length: *mut size_t)
-                                         -> *const c_char {
+                                         -> *mut c_char {
     unsafe {
         let cb: &mut MergeOperatorCallback =
             &mut *(raw_cb as *mut MergeOperatorCallback);
@@ -98,7 +98,7 @@ pub extern "C" fn partial_merge_callback(raw_cb: *mut c_void,
         *new_value_length = 1 as size_t;
         *success = 1 as u8;
         ptr::copy(result.as_ptr() as *mut c_void, &mut *buf, result.len());
-        buf as *const c_char
+        buf as *mut c_char
     }
 }
 
@@ -204,7 +204,7 @@ fn mergetest() {
                     None => println!("did not read valid utf-8 out of the db"),
                 }
             }
-            Err(e) => println!("error reading value"),
+            Err(_) => println!("error reading value"),
             _ => panic!("value not present"),
         }
 

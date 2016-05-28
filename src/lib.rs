@@ -12,14 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+extern crate libc;
+
 pub use ffi as rocksdb_ffi;
-pub use ffi::{DBCompactionStyle, DBComparator, new_bloom_filter};
+pub use ffi::{DBCompactionStyle, DBComparator};
 pub use rocksdb::{DB, DBIterator, DBVector, Direction, IteratorMode, Writable,
                   WriteBatch};
 pub use rocksdb_options::{BlockBasedOptions, Options, WriteOptions};
 pub use merge_operator::MergeOperands;
-pub mod rocksdb;
+
 pub mod ffi;
+pub mod rocksdb;
 pub mod rocksdb_options;
 pub mod merge_operator;
 pub mod comparator;
+
+pub fn new_bloom_filter(bits: libc::c_int) -> ffi::DBFilterPolicy {
+    unsafe { ffi::rocksdb_filterpolicy_create_bloom(bits) as *const _ }
+}
+
+pub fn new_cache(capacity: libc::size_t) -> ffi::DBCache {
+    unsafe { ffi::rocksdb_cache_create_lru(capacity) as *const _ }
+}

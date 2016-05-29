@@ -242,13 +242,6 @@ impl Options {
         }
     }
 
-    pub fn set_target_file_size_base(&mut self, size: u64) {
-        unsafe {
-            rocksdb_ffi::rocksdb_options_set_target_file_size_base(self.inner as *mut _,
-                                                                   size as uint64_t);
-        }
-    }
-
     pub fn set_min_write_buffer_number_to_merge(&mut self, to_merge: i32) {
         unsafe {
             rocksdb_ffi::rocksdb_options_set_min_write_buffer_number_to_merge(
@@ -256,17 +249,71 @@ impl Options {
         }
     }
 
-    pub fn set_level_zero_slowdown_writes_trigger(&mut self, n: i32) {
+    pub fn set_num_levels(&mut self, n: i32) {
+        unsafe {
+            rocksdb_ffi::rocksdb_options_set_num_levels(self.inner as *mut _,
+                                                        n as c_int);
+        }
+    }
+
+    pub fn set_level0_file_num_compaction_trigger(&mut self, n: i32) {
+        unsafe {
+            rocksdb_ffi::rocksdb_options_set_level0_file_num_compaction_trigger(
+                self.inner as *mut _, n as c_int);
+        }
+    }
+
+    pub fn set_level_zero_file_num_compaction_trigger(&mut self, n: i32) {
+        self.set_level0_file_num_compaction_trigger(n);
+    }
+
+    pub fn set_level0_slowdown_writes_trigger(&mut self, n: i32) {
         unsafe {
             rocksdb_ffi::rocksdb_options_set_level0_slowdown_writes_trigger(
                 self.inner as *mut _, n as c_int);
         }
     }
 
-    pub fn set_level_zero_stop_writes_trigger(&mut self, n: i32) {
+    pub fn set_level_zero_slowdown_writes_trigger(&mut self, n: i32) {
+        self.set_level0_slowdown_writes_trigger(n);
+    }
+
+    pub fn set_level0_stop_writes_trigger(&mut self, n: i32) {
         unsafe {
             rocksdb_ffi::rocksdb_options_set_level0_stop_writes_trigger(
                 self.inner as *mut _, n as c_int);
+        }
+    }
+
+    pub fn set_level_zero_stop_writes_trigger(&mut self, n: i32) {
+        self.set_level0_stop_writes_trigger(n);
+    }
+
+    pub fn set_target_file_size_base(&mut self, size: u64) {
+        unsafe {
+            rocksdb_ffi::rocksdb_options_set_target_file_size_base(
+                self.inner as *mut _, size as uint64_t);
+        }
+    }
+
+    pub fn set_target_file_size_multiplier(&mut self, size: i32) {
+        unsafe {
+            rocksdb_ffi::rocksdb_options_set_target_file_size_multiplier(
+                self.inner as *mut _, size as c_int);
+        }
+    }
+
+    pub fn set_max_bytes_for_level_base(&mut self, size: u64) {
+        unsafe {
+            rocksdb_ffi::rocksdb_options_set_max_bytes_for_level_base(
+                self.inner as *mut _, size as uint64_t);
+        }
+    }
+
+    pub fn set_max_bytes_for_level_multiplier(&mut self, size: i32) {
+        unsafe {
+            rocksdb_ffi::rocksdb_options_set_max_bytes_for_level_multiplier(
+                self.inner as *mut _, size as c_int);
         }
     }
 

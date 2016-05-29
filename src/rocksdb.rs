@@ -20,11 +20,12 @@ use std::ffi::CString;
 use std::fs;
 use std::ops::Deref;
 use std::path::Path;
+use std::ptr;
 use std::slice;
 use std::str::from_utf8;
 
-use rocksdb_ffi::{self, error_message};
 use libc::*;
+use rocksdb_ffi::{self, error_message};
 use rocksdb_options::{Options, WriteOptions};
 
 pub struct DB {
@@ -256,17 +257,40 @@ impl DB {
     pub fn open_default(path: &str) -> Result<DB, String> {
         let mut opts = Options::new();
         opts.create_if_missing(true);
-        DB::open(&opts, path)
+        DB::_open(&opts, path, &[], false)
     }
 
     pub fn open(opts: &Options, path: &str) -> Result<DB, String> {
-        DB::open_cf(opts, path, &[])
+        DB::_open(opts, path, &[], false)
     }
 
     pub fn open_cf(opts: &Options,
                    path: &str,
                    cfs: &[&str])
                    -> Result<DB, String> {
+        DB::_open(opts, path, cfs, false)
+    }
+
+    pub fn read_default(path: &str) -> Result<DB, String> {
+        DB::_open(&Options::new(), path, &[], true)
+    }
+
+    pub fn read(opts: &Options, path: &str) -> Result<DB, String> {
+        DB::_open(opts, path, &[], true)
+    }
+
+    pub fn read_cf(opts: &Options,
+                   path: &str,
+                   cfs: &[&str])
+                   -> Result<DB, String> {
+        DB::_open(opts, path, cfs, true)
+    }
+
+    fn _open(opts: &Options,
+             path: &str,
+             cfs: &[&str],
+             read_only: bool)
+             -> Result<DB, String> {
         let cpath = match CString::new(path.as_bytes()) {
             Ok(c) => c,
             Err(_) => {
@@ -287,16 +311,24 @@ impl DB {
             Ok(_) => (),
         }
 
-        let mut err: *const c_char = 0 as *const c_char;
+        let mut err: *const c_char = ptr::null();
         let err_ptr: *mut *const c_char = &mut err;
+
         let db: rocksdb_ffi::DBInstance;
         let mut cf_map = BTreeMap::new();
 
-        if cfs.len() == 0 {
-            unsafe {
-                db = rocksdb_ffi::rocksdb_open(opts.inner,
-                                               cpath_ptr as *const _,
-                                               err_ptr);
+        if cfs.is_empty() {
+            if read_only {
+                unsafe {
+                    db = rocksdb_ffi::rocksdb_open_for_read_only(opts.inner,
+                                      cpath_ptr as *const _, 0, err_ptr);
+                }
+            } else {
+                unsafe {
+                    db = rocksdb_ffi::rocksdb_open(opts.inner,
+                                                   cpath_ptr as *const _,
+                                                   err_ptr);
+                }
             }
         } else {
             let mut cfs_v = cfs.to_vec();
@@ -331,14 +363,28 @@ impl DB {
             let copts = cfopts.as_ptr();
             let handles = cfhandles.as_ptr();
             let nfam = cfs_v.len();
-            unsafe {
-                db = rocksdb_ffi::rocksdb_open_column_families(opts.inner,
+            if read_only {
+                unsafe {
+                    db = rocksdb_ffi::rocksdb_open_for_read_only_column_families(
+                        opts.inner,
+                        cpath_ptr as *const _,
+                        nfam as libc::c_int,
+                        cfnames.as_ptr() as *const _,
+                        copts,
+                        handles as *mut *mut _,
+                        0,
+                        err_ptr);
+                }
+            } else {
+                unsafe {
+                    db = rocksdb_ffi::rocksdb_open_column_families(opts.inner,
                                                   cpath_ptr as *const _,
                                                   nfam as libc::c_int,
                                                   cfnames.as_ptr() as *const _,
                                                   copts,
                                                   handles as *mut *mut _,
                                                   err_ptr);
+                }
             }
 
             for handle in cfhandles.iter() {

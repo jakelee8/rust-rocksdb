@@ -119,8 +119,8 @@ pub enum DBCompactionStyle {
 
 #[repr(C)]
 pub enum DBUniversalCompactionStyle {
-    rocksdb_similar_size_compaction_stop_style = 0,
-    DBInstanceOpaqueotal_size_compaction_stop_style = 1,
+    SimilarSizeCompactionStopStyle = 0,
+    TotalSizeCompactionStopStyle = 1,
 }
 
 pub type DBGetNameFn = extern "C" fn(*mut c_void) -> *const c_char;
